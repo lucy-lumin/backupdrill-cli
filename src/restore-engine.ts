@@ -574,7 +574,10 @@ export async function installExtensions(
     for (const ext of extensions) {
       if (inTransaction) await client.query("savepoint backupdrill_extension");
       try {
-        await client.query(`create schema if not exists ${quoteIdent(ext.schema)}`);
+        // don't attempt to create schemas with the "pg_" system prefix or the information_schema names
+        if (!/^pg_/.test(ext.schema) && ext.schema !== "information_schema") {
+          await client.query(`create schema if not exists ${quoteIdent(ext.schema)}`);
+        }
         // CASCADE 自动带上依赖扩展,免受 manifest 里的安装顺序摆布
         await client.query(
           `create extension if not exists ${quoteIdent(ext.name)} schema ${quoteIdent(ext.schema)} cascade`
